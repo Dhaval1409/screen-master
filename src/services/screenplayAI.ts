@@ -75,20 +75,86 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
 const SCREENPLAY_RULES = `
 You are an Oscar-level professional screenplay writer continuing an ongoing script.
 
-STRICT FORMAT RULES:
-- Scene heading: INT./EXT./I/E. LOCATION — DAY/NIGHT/CONTINUOUS (always CAPS)
-- Action lines: present tense, only what camera sees/hears, max 3-4 lines per block
-- Emotions only through visible behavior — never internal thoughts
-- Character intro: NAME (age) in CAPS first time only
-- Dialogue: character name centered above in CAPS, text below
-- CONT'D when same character speaks after action interruption
-- V.O. for voiceover, O.S. for off-screen voice
-- Parentheticals (in brackets) — use sparingly for tone/direction
-- Transitions flush right: CUT TO: / DISSOLVE TO: / SMASH CUT TO: / FADE TO BLACK.
-- Dialogue in natural Hinglish (Hindi + English) unless genre requires otherwise
-- 1 page = ~55 lines. Write exactly 2 pages per chunk (~110 lines of content)
-- Do NOT summarize or wrap up — just write the next 2 pages as if mid-script
-- Do NOT add "END OF CHUNK" or any markers — pure screenplay only
+═══ CINEMATIC RHYTHM — MOST IMPORTANT RULE ═══
+Action blocks must BREATHE. Short. Punchy. Visual.
+Never write dense paragraphs. Every 1-2 sentences = new line break.
+
+WRONG ❌
+The alley is narrow, the walls slick with grime. Overflowing garbage bins line one side, the stench hanging heavy as Anjali moves carefully through the darkness, her flashlight cutting weak arcs through the fog.
+
+CORRECT ✅
+The alley is narrow.
+
+Walls slick with grime.
+
+Overflowing bins. The stench hangs heavy.
+
+Anjali's flashlight cuts weak arcs through the fog.
+
+═══ ACTION LINE RULES ═══
+- MAX 2 sentences per action block, then a blank line
+- Only what the CAMERA CAN SEE or HEAR — never internal thoughts
+- Present tense always
+- Short declarative sentences. No flourish. No metaphor.
+- Character intro: NAME (age) in CAPS first appearance only
+- Show emotion through BEHAVIOR, not description
+  WRONG ❌: She feels scared.
+  CORRECT ✅: Her hand trembles on the door handle.
+
+═══ PARENTHETICALS ═══
+- Keep them tiny — one or two words only
+  WRONG ❌: (To herself, in a low whisper, nervously)
+  CORRECT ✅: (whispering) or (to herself)
+- Use SPARINGLY — only when delivery is truly non-obvious
+- Never use for physical action — that belongs in action lines
+
+═══ DIALOGUE ═══
+- Natural spoken rhythm — how people actually talk
+- Hinglish where natural (Hindi + English mix)
+- No on-the-nose dialogue — subtext over text
+- V.O. for voiceover, O.S. for off-screen
+
+═══ SCENE HEADINGS ═══
+- INT./EXT./I/E. LOCATION — DAY/NIGHT/CONTINUOUS
+- Always full CAPS
+- CONTINUOUS when scene flows directly from previous
+
+═══ TRANSITIONS ═══
+- Flush right: CUT TO: / DISSOLVE TO: / SMASH CUT TO: / FADE TO BLACK.
+- Use sparingly — only for meaningful time/tone jumps
+- Most scene cuts need NO transition
+
+═══ PAGE COUNT ═══
+- 1 page = ~55 lines
+- Write exactly 2 pages per chunk (~110 lines)
+- Do NOT summarize or wrap up the chunk
+- Do NOT add any markers like "END OF CHUNK"
+- Pure screenplay text only
+
+═══ CINEMATIC RHYTHM EXAMPLES ═══
+
+WRONG — novelistic ❌
+The taxi screeches to a halt outside a narrow alleyway, the city a dizzying kaleidoscope of lights and shadows behind it as Anjali steps out into the wet street.
+
+CORRECT — cinematic ✅
+The taxi BRAKES hard.
+
+Anjali jolts forward.
+
+Outside —
+
+A narrow alley.
+
+Dark. Wet. Silent.
+
+---
+
+WRONG — information dump ❌
+She's looking for a specific building number as she moves through the alley.
+
+CORRECT — visual action ✅
+Her flashlight jumps from one rusted number plate to the next.
+
 `;
 
 // ─── Generate first chunk ─────────────────────────────────────────────────────
@@ -101,8 +167,8 @@ export async function generateFirstChunk(
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", SCREENPLAY_RULES],
     [
-      "human",
-      `You are starting a NEW screenplay project. Write the OPENING 2 pages only.
+       "human",
+      `You are starting a NEW screenplay. Write the OPENING 2 pages only.
 
 PROJECT:
 Title: {title}
@@ -111,7 +177,13 @@ Type: {storyType}
 Total length: {targetPages} pages
 Premise: {description}
 
-START from page 1. Write the opening scene — establish world, introduce protagonist, hook the audience.
+RHYTHM REMINDER:
+- Max 2 sentences per action block, then blank line
+- Short. Visual. Breathing.
+- No dense paragraphs — ever
+- Parentheticals: (whispering) not (To herself, in a low whisper)
+
+START from page 1. Establish world, introduce protagonist, hook the audience.
 Begin directly with the first scene heading. No preamble.`,
     ],
   ]);
@@ -165,7 +237,7 @@ export async function generateNextChunk(
 
 PROJECT:
 Title: {title}
-Genre: {genre}  
+Genre: {genre}
 Premise: {description}
 Total length: {targetPages} pages
 Current position: page {pageStart} of {targetPages} ({progressPct}% through)
@@ -177,10 +249,17 @@ STORY SO FAR (summaries):
 LAST WRITTEN (continue DIRECTLY from here):
 {lastContent}
 
+RHYTHM REMINDER:
+- Max 2 sentences per action block, then blank line
+- Short. Visual. Breathing.
+- No dense paragraphs — ever
+- Parentheticals: (whispering) not (To herself, in a low whisper)
+
 ---
-Continue the story from exactly where it left off. Write pages {pageStart}-{pageEnd} only.
-Maintain all character voices, ongoing tension, and story momentum.
-Do NOT recap. Do NOT start a new story. Continue seamlessly.`,
+Continue from exactly where it left off. Pages {pageStart}-{pageEnd} only.
+Maintain character voices, tension, momentum.
+Do NOT recap. Do NOT start new story. Continue seamlessly.`,
+      
     ],
   ]);
 
