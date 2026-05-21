@@ -24,9 +24,13 @@ export default function RootLayout({
 }>) {
   return (
     <html
+
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+       <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
