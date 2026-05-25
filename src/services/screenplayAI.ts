@@ -15,9 +15,18 @@ export interface ProjectContext {
   description: string;
   characters?: Array<{
     name: string;
-    age?: number;
-    role: string;
+    age?: number | string;
+    role?: string;
     description: string;
+    goal?: string;
+    flaw?: string;
+    voice?: string;
+    arc?: string;
+  }>;
+  sceneOutline?: Array<{
+    title: string;
+    description: string;
+    status?: string;
   }>;
 }
 
@@ -228,6 +237,8 @@ export async function generateNextChunk(
   // Calculate story position for structural guidance
   const progress = chunk.pageStart / project.targetPages;
   const structureHint = getStructureHint(progress, project.targetPages);
+  const characterBible = formatCharacters(project.characters);
+  const sceneOutline = formatSceneOutline(project.sceneOutline);
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", SCREENPLAY_RULES],
@@ -242,6 +253,12 @@ Premise: {description}
 Total length: {targetPages} pages
 Current position: page {pageStart} of {targetPages} ({progressPct}% through)
 Story structure note: {structureHint}
+
+CHARACTER BIBLE:
+{characterBible}
+
+SCENE OUTLINE / BEAT BOARD:
+{sceneOutline}
 
 STORY SO FAR (summaries):
 {storySoFar}
@@ -275,6 +292,8 @@ Do NOT recap. Do NOT start new story. Continue seamlessly.`,
       pageEnd: (chunk.pageStart + 1).toString(),
       progressPct: Math.round(progress * 100).toString(),
       structureHint,
+      characterBible,
+      sceneOutline,
       storySoFar: storySoFar || "This is the beginning of the story.",
       lastContent: chunk.lastChunkContent?.slice(-1500) || "", // last 1500 chars for continuity
     })
@@ -361,4 +380,33 @@ Role options: protagonist, antagonist, supporting, love_interest, mentor`],
   } catch {
     return [];
   }
+}
+
+function formatCharacters(characters: ProjectContext["characters"]): string {
+  if (!characters || characters.length === 0) {
+    return "No saved character bible yet. Maintain continuity from the written screenplay.";
+  }
+
+  return characters
+    .map((char, index) => [
+      `${index + 1}. ${char.name}`,
+      char.role ? `Role: ${char.role}` : "",
+      char.age ? `Age: ${char.age}` : "",
+      char.goal ? `Goal: ${char.goal}` : "",
+      char.flaw ? `Flaw: ${char.flaw}` : "",
+      char.voice ? `Voice: ${char.voice}` : "",
+      char.arc ? `Arc: ${char.arc}` : "",
+      `Description: ${char.description}`,
+    ].filter(Boolean).join(" | "))
+    .join("\n");
+}
+
+function formatSceneOutline(sceneOutline: ProjectContext["sceneOutline"]): string {
+  if (!sceneOutline || sceneOutline.length === 0) {
+    return "No saved scene outline yet. Follow the structural note and story so far.";
+  }
+
+  return sceneOutline
+    .map((scene, index) => `${index + 1}. ${scene.title} (${scene.status || "planned"}): ${scene.description}`)
+    .join("\n");
 }

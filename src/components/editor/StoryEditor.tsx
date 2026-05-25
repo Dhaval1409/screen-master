@@ -25,6 +25,23 @@ interface Chunk {
   createdAt: string;
 }
 
+interface CharacterProfile {
+  name: string;
+  age?: string | number;
+  role?: string;
+  description: string;
+  goal?: string;
+  flaw?: string;
+  voice?: string;
+  arc?: string;
+}
+
+interface SceneBeat {
+  title: string;
+  description: string;
+  status?: "planned" | "drafted" | "complete";
+}
+
 interface Project {
   id: string;
   title: string;
@@ -33,6 +50,8 @@ interface Project {
   targetPages: number;
   description: string;
   status: string;
+  characters?: CharacterProfile[];
+  sceneOutline?: SceneBeat[];
   chunks: Chunk[];
 }
 
@@ -119,6 +138,133 @@ function ScreenplayPage({ content, chunkNumber, pageStart, pageEnd }: {
     </div>
   );
 }
+
+function PlanningStudio({ project, onSaved }: { project: Project; onSaved: (project: Project) => void }) {
+  const [characters, setCharacters] = useState<CharacterProfile[]>(project.characters || []);
+  const [sceneOutline, setSceneOutline] = useState<SceneBeat[]>(project.sceneOutline || []);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const updateCharacter = (index: number, key: keyof CharacterProfile, value: string) => {
+    setCharacters(prev => prev.map((character, i) => i === index ? { ...character, [key]: value } : character));
+  };
+
+  const updateBeat = (index: number, key: keyof SceneBeat, value: string) => {
+    setSceneOutline(prev => prev.map((beat, i) => i === index ? { ...beat, [key]: value } : beat));
+  };
+
+  const savePlanning = async () => {
+    setSaving(true);
+    setMessage("");
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          characters: characters.filter(char => char.name.trim() || char.description.trim()),
+          sceneOutline: sceneOutline.filter(scene => scene.title.trim() || scene.description.trim()),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.error || "Failed to save planning.");
+        return;
+      }
+      onSaved({ ...project, ...data.project });
+      setMessage("Planning saved. Future AI chunks will use this context.");
+    } catch {
+      setMessage("Network error. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "24px 20px 0", fontFamily: "'Courier Prime','Courier New',monospace" }}>
+      <div style={{ background: "#161618", border: "1px solid rgba(232,200,74,0.2)", borderTop: "3px solid #e8c84a", borderRadius: "8px", padding: "22px", boxShadow: "0 18px 46px rgba(0,0,0,0.28)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: "18px", alignItems: "flex-start", marginBottom: "20px", flexWrap: "wrap" }}>
+          <div>
+            <div style={{ color: "#e8c84a", fontSize: "10px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: "8px" }}>Story Planning</div>
+            <div style={{ color: "#f5f5f0", fontSize: "24px", fontWeight: 900, letterSpacing: "0.04em", textTransform: "uppercase" }}>Character Bible + Scene Outline</div>
+            <div style={{ color: "rgba(245,245,240,0.5)", fontSize: "12px", lineHeight: 1.6, marginTop: "8px", maxWidth: "680px" }}>
+              Keep character voices, motives, and planned beats consistent before ScreenMaster writes the next pages.
+            </div>
+          </div>
+          <button onClick={savePlanning} disabled={saving} style={planningPrimaryButtonStyle}>{saving ? "Saving..." : "Save Plan"}</button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "18px" }}>
+          <div>
+            <div style={planningSectionTitleStyle}>Character Bible</div>
+            <div style={{ display: "grid", gap: "12px" }}>
+              {characters.map((character, index) => (
+                <div key={index} style={planningCardStyle}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: "10px", marginBottom: "10px" }}>
+                    <input value={character.name} onChange={e => updateCharacter(index, "name", e.target.value)} placeholder="Character name" style={plannerInputStyle} />
+                    <input value={character.role || ""} onChange={e => updateCharacter(index, "role", e.target.value)} placeholder="Role" style={plannerInputStyle} />
+                  </div>
+                  <textarea value={character.description} onChange={e => updateCharacter(index, "description", e.target.value)} placeholder="Description, backstory, visual identity" rows={2} style={plannerTextareaStyle} />
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px", marginTop: "10px" }}>
+                    <input value={character.goal || ""} onChange={e => updateCharacter(index, "goal", e.target.value)} placeholder="Goal" style={plannerInputStyle} />
+                    <input value={character.flaw || ""} onChange={e => updateCharacter(index, "flaw", e.target.value)} placeholder="Flaw" style={plannerInputStyle} />
+                    <input value={character.voice || ""} onChange={e => updateCharacter(index, "voice", e.target.value)} placeholder="Voice/dialogue style" style={plannerInputStyle} />
+                    <input value={character.arc || ""} onChange={e => updateCharacter(index, "arc", e.target.value)} placeholder="Arc" style={plannerInputStyle} />
+                  </div>
+                  <button onClick={() => setCharacters(prev => prev.filter((_, i) => i !== index))} style={miniButtonStyle}>Remove</button>
+                </div>
+              ))}
+              <button onClick={() => setCharacters(prev => [...prev, { name: "", role: "", description: "", goal: "", flaw: "", voice: "", arc: "" }])} style={outlineButtonStyle}>+ Add Character</button>
+            </div>
+          </div>
+
+          <div>
+            <div style={planningSectionTitleStyle}>Scene Outline</div>
+            <div style={{ display: "grid", gap: "12px" }}>
+              {sceneOutline.map((scene, index) => (
+                <div key={index} style={planningCardStyle}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: "10px", marginBottom: "10px" }}>
+                    <input value={scene.title} onChange={e => updateBeat(index, "title", e.target.value)} placeholder={`Scene ${index + 1} title`} style={plannerInputStyle} />
+                    <select value={scene.status || "planned"} onChange={e => updateBeat(index, "status", e.target.value)} style={plannerInputStyle}>
+                      <option value="planned">planned</option>
+                      <option value="drafted">drafted</option>
+                      <option value="complete">complete</option>
+                    </select>
+                  </div>
+                  <textarea value={scene.description} onChange={e => updateBeat(index, "description", e.target.value)} placeholder="What happens in this beat? Conflict, reveal, turn, or set piece." rows={3} style={plannerTextareaStyle} />
+                  <button onClick={() => setSceneOutline(prev => prev.filter((_, i) => i !== index))} style={miniButtonStyle}>Remove</button>
+                </div>
+              ))}
+              <button onClick={() => setSceneOutline(prev => [...prev, { title: "", description: "", status: "planned" }])} style={outlineButtonStyle}>+ Add Scene Beat</button>
+            </div>
+          </div>
+        </div>
+
+        {message && <div style={planningMessageStyle}>{message}</div>}
+      </div>
+    </section>
+  );
+}
+
+const plannerInputStyle: React.CSSProperties = {
+  width: "100%",
+  background: "#161618",
+  border: "1px solid rgba(232,200,74,0.18)",
+  borderRadius: "4px",
+  color: "#f5f5f0",
+  fontSize: "12px",
+  fontFamily: "'Courier Prime','Courier New',monospace",
+  padding: "10px 11px",
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+const plannerTextareaStyle: React.CSSProperties = { ...plannerInputStyle, resize: "vertical", lineHeight: 1.55 };
+const planningSectionTitleStyle: React.CSSProperties = { color: "#e8c84a", fontSize: "10px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: "10px" };
+const planningCardStyle: React.CSSProperties = { background: "#111", border: "1px solid rgba(232,200,74,0.16)", borderRadius: "6px", padding: "14px" };
+const planningPrimaryButtonStyle: React.CSSProperties = { background: "#e8c84a", color: "#111", border: "1px solid #e8c84a", borderRadius: "4px", padding: "12px 18px", fontFamily: "'Courier Prime','Courier New',monospace", fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 0 28px rgba(232,200,74,0.18)" };
+const miniButtonStyle: React.CSSProperties = { marginTop: "10px", background: "transparent", border: "1px solid rgba(232,200,74,0.18)", borderRadius: "4px", color: "rgba(245,245,240,0.5)", padding: "7px 10px", fontFamily: "'Courier Prime','Courier New',monospace", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer" };
+const outlineButtonStyle: React.CSSProperties = { background: "transparent", border: "1px dashed rgba(232,200,74,0.34)", borderRadius: "5px", color: "#e8c84a", padding: "13px", fontFamily: "'Courier Prime','Courier New',monospace", fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer" };
+const planningMessageStyle: React.CSSProperties = { marginTop: "16px", color: "#e8c84a", background: "#111", border: "1px solid rgba(232,200,74,0.2)", borderLeft: "3px solid #e8c84a", borderRadius: "4px", padding: "10px 12px", fontSize: "11px", lineHeight: 1.5 };
 
 // ─── Main StoryEditor ───────────────────────────────────────────────────────
 
@@ -233,6 +379,8 @@ export function StoryEditor({ projectId, onBack }: Props) {
           <button onClick={() => handleExport("fdx")} style={{ background: "transparent", border: "1px solid #2a2a2c", borderRadius: "6px", color: "#7aaee8", fontSize: "10px", padding: "6px 10px", cursor: "pointer", letterSpacing: "0.06em", textTransform: "uppercase" }}>🎬 FDX</button>
         </div>
       </div>
+
+      <PlanningStudio key={project.id} project={project} onSaved={setProject} />
 
       {/* ── Screenplay paper ── */}
       <div style={{ padding: "32px 0 0", background: "#2a2a2c" }}>

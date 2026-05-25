@@ -18,6 +18,7 @@ model Project {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   characters  Json?
+  sceneOutline Json?
   chunks      ScreenplayChunk[]
 }
 

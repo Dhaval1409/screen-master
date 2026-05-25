@@ -30,18 +30,20 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   }
 }
 
-// PATCH /api/projects/[id] — update status or title
+// PATCH /api/projects/[id] — update status, title, character bible, or scene outline
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
-    const { status, title } = body;
+    const { status, title, characters, sceneOutline } = body;
 
     const updated = await prisma.project.update({
       where: { id },
       data: {
         ...(status && { status }),
         ...(title && { title }),
+        ...(characters !== undefined && { characters }),
+        ...(sceneOutline !== undefined && { sceneOutline }),
       },
     });
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateNextChunk } from "@/services/screenplayAI";
+import { generateNextChunk, type ProjectContext } from "@/services/screenplayAI";
 
 export const runtime = "nodejs";
 
@@ -42,7 +42,8 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
         storyType: project.storyType,
         targetPages: project.targetPages,
         description: project.description,
-        characters: (project.characters as any) || [],
+        characters: (project.characters as ProjectContext["characters"]) || [],
+        sceneOutline: (project.sceneOutline as ProjectContext["sceneOutline"]) || [],
       },
       {
         chunkNumber: lastChunk.chunkNumber + 1,
