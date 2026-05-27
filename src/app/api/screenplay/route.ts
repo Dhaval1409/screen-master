@@ -4,9 +4,10 @@ import { generateNextChunk } from "@/services/screenplayAI";
 
 export const runtime = "nodejs";
 
-export async function POST(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest) {
   try {
-    const { id } = await params;
+    const body = await req.json();
+    const { id } = body;
 
     const project = await prisma.project.findUnique({
       where: { id },
@@ -14,7 +15,6 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
         chunks: { orderBy: { chunkNumber: "asc" } },
       },
     });
-
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
     if (project.status === "completed") return NextResponse.json({ error: "Project is already completed" }, { status: 400 });
 
