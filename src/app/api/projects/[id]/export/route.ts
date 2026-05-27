@@ -6,13 +6,18 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
+
+    const { id } = await params;
     const { searchParams } = new URL(req.url);
     const format = searchParams.get("format") || "txt"; // "txt" | "fdx"
 
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: {id: id},
       include: {
         chunks: { orderBy: { chunkNumber: "asc" } },
       },
